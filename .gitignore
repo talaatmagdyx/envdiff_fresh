@@ -6,3 +6,14 @@ build/
 dist/
 *.pyc
 .DS_Store
+
+# IDE
+.idea/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+
+# Build artifacts
+*.egg-info/

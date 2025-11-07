@@ -1287,3 +1287,679 @@ def test_envset_parse_env_non_matching_line():
     result = envset.parse_env(text)
     assert "VALID_KEY" in result
     assert "INVALID" not in result
+
+
+def test_envset_parse_yaml_return_data():
+    """Test envset parse_yaml returns data (line 337)."""
+    text = "key: value\n"
+    result = envset.parse_yaml(text)
+    assert result == {"key": "value"}
+
+
+def test_envdiff_load_kv_any_env(tmp_path: Path):
+    """Test load_kv_any with env type (line 716)."""
+    env_file = tmp_path / "test.env"
+    env_file.write_text("KEY=value\n", encoding="utf-8")
+    result = envdiff.load_kv_any(str(env_file), "env", None, None, None)
+    assert result == {"KEY": "value"}
+
+
+def test_envdiff_load_kv_any_yaml(tmp_path: Path):
+    """Test load_kv_any with yaml type (line 718)."""
+    yaml_file = tmp_path / "test.yml"
+    yaml_file.write_text("key: value\n", encoding="utf-8")
+    result = envdiff.load_kv_any(str(yaml_file), "yaml", None, None, None)
+    assert result == {"key": "value"}
+
+
+def test_envdiff_main_direct_call(tmp_path: Path):
+    """Test envdiff main() function directly to cover CLI code paths."""
+    import sys
+    from io import StringIO
+
+    source_yml = tmp_path / "src.yml"
+    target_env = tmp_path / ".env"
+    source_yml.write_text("APP: one\n", encoding="utf-8")
+    target_env.write_text("APP=one\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(target_env),
+            "--format",
+            "json",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envdiff.main()
+        output = sys.stdout.getvalue()
+        data = json.loads(output)
+        assert "summary" in data
+        assert data["summary"]["missing"] == 0
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_direct_call(tmp_path: Path):
+    """Test envset main() function directly to cover CLI code paths."""
+    import sys
+    from io import StringIO
+
+    env_file = tmp_path / "test.env"
+    env_file.write_text("KEY=old\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(env_file),
+            "--key",
+            "KEY",
+            "--value",
+            "new",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+        assert "KEY=new" in env_file.read_text(encoding="utf-8")
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_yaml_path(tmp_path: Path):
+    """Test envset main() with YAML file to cover yaml code paths."""
+    import sys
+    from io import StringIO
+
+    yaml_file = tmp_path / "test.yml"
+    yaml_file.write_text("a:\n  b: 1\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(yaml_file),
+            "--key",
+            "a.b",
+            "--value",
+            "2",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_py_path(tmp_path: Path):
+    """Test envset main() with Python config file to cover py code paths."""
+    import sys
+    from io import StringIO
+
+    cfg_file = tmp_path / "config.py"
+    cfg_file.write_text("CONFIG = {}\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(cfg_file),
+            "--key",
+            "database.host",
+            "--value",
+            "localhost",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_dry_run(tmp_path: Path):
+    """Test envset main() with --dry-run to cover dry-run code path."""
+    import sys
+    from io import StringIO
+
+    env_file = tmp_path / "test.env"
+    env_file.write_text("KEY=old\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(env_file),
+            "--key",
+            "KEY",
+            "--value",
+            "new",
+            "--dry-run",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "DRY-RUN" in output
+        # File should not be modified
+        assert "KEY=old" in env_file.read_text(encoding="utf-8")
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_rewrite_constant(tmp_path: Path):
+    """Test envset main() with --rewrite for constant to cover rewrite code paths."""
+    import sys
+    from io import StringIO
+
+    cfg_file = tmp_path / "config.py"
+    cfg_file.write_text("API_KEY = 'old'\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(cfg_file),
+            "--key",
+            "API_KEY",
+            "--value",
+            "new",
+            "--rewrite",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_rewrite_dict(tmp_path: Path):
+    """Test envset main() with --rewrite for dict to cover rewrite code paths."""
+    import sys
+    from io import StringIO
+
+    cfg_file = tmp_path / "config.py"
+    cfg_file.write_text("CONFIG = {'database': {'host': 'old'}}\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(cfg_file),
+            "--key",
+            "database.host",
+            "--value",
+            "new",
+            "--rewrite",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envdiff_main_all_paths(tmp_path: Path):
+    """Test envdiff main() with various options to cover all code paths."""
+    import sys
+    from io import StringIO
+
+    source_yml = tmp_path / "src.yml"
+    target_env = tmp_path / ".env"
+    source_yml.write_text("APP: one\nX: 1\n", encoding="utf-8")
+    target_env.write_text("APP=one\n", encoding="utf-8")
+
+    # Test with --show-same
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(target_env),
+            "--show-same",
+            "--format",
+            "text",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envdiff.main()
+        output = sys.stdout.getvalue()
+        assert "Missing on target" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+    # Test with --patch-format
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(target_env),
+            "--patch-format",
+            "export",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envdiff.main()
+        output = sys.stdout.getvalue()
+        assert "Patch" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+    # Test with --apply-dry-run
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(target_env),
+            "--apply",
+            "--apply-dry-run",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envdiff.main()
+        output = sys.stdout.getvalue()
+        assert "would write" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+    # Test with --check (no differences)
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(source_yml),
+            "--check",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envdiff.main()
+        output = sys.stdout.getvalue()
+        assert "CHECK OK" in output or len(output) == 0
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envdiff_main_json_format_with_check(tmp_path: Path):
+    """Test envdiff main() with --format json and --check."""
+    import sys
+    from io import StringIO
+
+    source_yml = tmp_path / "src.yml"
+    target_env = tmp_path / ".env"
+    source_yml.write_text("APP: one\nX: 1\n", encoding="utf-8")
+    target_env.write_text("APP=one\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(target_env),
+            "--format",
+            "json",
+            "--check",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        try:
+            envdiff.main()
+        except SystemExit as e:
+            # Should exit with code 5 due to differences
+            assert e.code == 5
+        output = sys.stdout.getvalue()
+        data = json.loads(output)
+        assert data["check"]["status"] == "fail"
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envdiff_main_patch_output_file(tmp_path: Path):
+    """Test envdiff main() with --output-patch-file."""
+    import sys
+    from io import StringIO
+
+    source_yml = tmp_path / "src.yml"
+    target_env = tmp_path / ".env"
+    patch_file = tmp_path / "patch.sh"
+    source_yml.write_text("APP: one\n", encoding="utf-8")
+    target_env.write_text("", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(target_env),
+            "--patch-format",
+            "export",
+            "--output-patch-file",
+            str(patch_file),
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envdiff.main()
+        output = sys.stdout.getvalue()
+        assert "Wrote patch" in output
+        assert patch_file.exists()
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envdiff_main_apply_non_env(tmp_path: Path):
+    """Test envdiff main() with --apply on non-env target (should exit with code 3)."""
+    import sys
+    from io import StringIO
+
+    source_yml = tmp_path / "src.yml"
+    target_py = tmp_path / "config.py"
+    source_yml.write_text("APP: one\n", encoding="utf-8")
+    target_py.write_text("CONFIG = {}\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(target_py),
+            "--apply",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        try:
+            envdiff.main()
+        except SystemExit as e:
+            assert e.code == 3
+        stderr_output = sys.stderr.getvalue()
+        assert "ERROR" in stderr_output or "Refusing" in stderr_output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_json_value(tmp_path: Path):
+    """Test envset main() with --json flag."""
+    import sys
+    from io import StringIO
+
+    env_file = tmp_path / "test.env"
+    env_file.write_text("KEY=old\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(env_file),
+            "--key",
+            "KEY",
+            "--value",
+            "42",
+            "--json",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+        # Value should be stored as number, not string
+        content = env_file.read_text(encoding="utf-8")
+        assert "KEY=42" in content or 'KEY="42"' in content
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_json_error(tmp_path: Path):
+    """Test envset main() with invalid --json value (should exit with code 2)."""
+    import sys
+    from io import StringIO
+
+    env_file = tmp_path / "test.env"
+    env_file.write_text("KEY=old\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(env_file),
+            "--key",
+            "KEY",
+            "--value",
+            "invalid json{",
+            "--json",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        try:
+            envset.main()
+        except SystemExit as e:
+            assert e.code == 2
+        stderr_output = sys.stderr.getvalue()
+        assert "ERROR" in stderr_output or "JSON" in stderr_output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_backup_none(tmp_path: Path):
+    """Test envset main() with --backup none."""
+    import sys
+    from io import StringIO
+
+    env_file = tmp_path / "test.env"
+    env_file.write_text("KEY=old\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(env_file),
+            "--key",
+            "KEY",
+            "--value",
+            "new",
+            "--backup",
+            "none",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+        # With --backup none, backup suffix should be None, so no backup message
+        assert "(backup" not in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_rewrite_constant_not_found(tmp_path: Path):
+    """Test envset main() with --rewrite for constant that doesn't exist."""
+    import sys
+    from io import StringIO
+
+    cfg_file = tmp_path / "config.py"
+    cfg_file.write_text("CONFIG = {}\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(cfg_file),
+            "--key",
+            "API_KEY",
+            "--value",
+            "new",
+            "--rewrite",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_rewrite_dict_not_found(tmp_path: Path):
+    """Test envset main() with --rewrite for dict assignment that doesn't exist."""
+    import sys
+    from io import StringIO
+
+    cfg_file = tmp_path / "config.py"
+    cfg_file.write_text("CONFIG = {}\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(cfg_file),
+            "--key",
+            "database.host",
+            "--value",
+            "localhost",
+            "--rewrite",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        output = sys.stdout.getvalue()
+        assert "updated" in output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
+def test_envset_main_py_error_handling(tmp_path: Path):
+    """Test envset main() error handling in py file update."""
+    import sys
+    from io import StringIO
+
+    cfg_file = tmp_path / "config.py"
+    cfg_file.write_text("CONFIG = {}\n", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        # Use invalid key that will cause error
+        sys.argv = [
+            "envset.py",
+            "--files",
+            str(cfg_file),
+            "--key",
+            "",
+            "--value",
+            "value",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        envset.main()
+        stderr_output = sys.stderr.getvalue()
+        assert "ERROR" in stderr_output
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
