@@ -2113,6 +2113,45 @@ def test_envdiff_main_json_only_return(tmp_path: Path):
         sys.stderr = old_stderr
 
 
+def test_envdiff_main_json_only_check_exit(tmp_path: Path):
+    """Test envdiff main() with --json-only and --check to hit sys.exit(5) (line 986)."""
+    import sys
+    from io import StringIO
+
+    source_yml = tmp_path / "src.yml"
+    target_env = tmp_path / ".env"
+    source_yml.write_text("APP: one\n", encoding="utf-8")
+    target_env.write_text("", encoding="utf-8")
+
+    old_argv = sys.argv
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    try:
+        sys.argv = [
+            "envdiff.py",
+            "--source",
+            str(source_yml),
+            "--target",
+            str(target_env),
+            "--json-only",
+            "--check",
+        ]
+        sys.stdout = StringIO()
+        sys.stderr = StringIO()
+        try:
+            envdiff.main()
+        except SystemExit as e:
+            # Should exit with code 5 due to differences
+            assert e.code == 5
+        output = sys.stdout.getvalue()
+        data = json.loads(output)
+        assert "missing" in data
+    finally:
+        sys.argv = old_argv
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+
 def test_envdiff_main_different_details(tmp_path: Path):
     """Test envdiff main() showing details of different values (lines 1006-1009)."""
     import sys
@@ -2339,19 +2378,23 @@ def test_envset_main_empty_key_after_split(tmp_path: Path):
     old_stdout = sys.stdout
     old_stderr = sys.stderr
     try:
+        # Use a key that splits to empty parts (e.g., "." or "..")
+        # This triggers line 704: parts = [p for p in (args.key or "").split(".") if p]
+        # which filters out empty strings, resulting in empty list
         sys.argv = [
             "envset.py",
             "--files",
             str(cfg),
             "--key",
-            "",
+            "...",
             "--value",
             "value",
+            "--rewrite",
         ]
         sys.stdout = StringIO()
         sys.stderr = StringIO()
         envset.main()
-        # Should handle empty key gracefully
+        # Should handle empty key after splitting gracefully
         output = sys.stdout.getvalue()
         assert len(output) >= 0  # May succeed or fail, but should not crash
     finally:
@@ -2364,12 +2407,10 @@ def test_envset_main_write_error_exception(tmp_path: Path):
     """Test envset main() with write error exception handling (lines 744-745)."""
     import sys
     from io import StringIO
+    from unittest.mock import patch
 
-    # Create a read-only directory
-    ro_dir = tmp_path / "readonly"
-    ro_dir.mkdir()
-    ro_dir.chmod(0o555)
-    test_file = ro_dir / "test.env"
+    test_file = tmp_path / "test.env"
+    test_file.write_text("KEY=old\n", encoding="utf-8")
 
     old_argv = sys.argv
     old_stdout = sys.stdout
@@ -2386,12 +2427,13 @@ def test_envset_main_write_error_exception(tmp_path: Path):
         ]
         sys.stdout = StringIO()
         sys.stderr = StringIO()
-        envset.main()
+        # Mock write_text to raise an exception to trigger error handling
+        with patch("envset.write_text", side_effect=PermissionError("Permission denied")):
+            envset.main()
         stderr_output = sys.stderr.getvalue()
         # Should print error to stderr
-        assert "ERROR writing" in stderr_output or "ERROR" in stderr_output
+        assert "ERROR writing" in stderr_output
     finally:
-        ro_dir.chmod(0o755)
         sys.argv = old_argv
         sys.stdout = old_stdout
         sys.stderr = old_stderr
