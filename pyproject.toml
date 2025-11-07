@@ -9,8 +9,36 @@ description = "Diff & patch environment configs across local/remote (.env, YAML,
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
-authors = [{ name = "Your Team" }]
+authors = [{ name = "Talaat Magdy", email = "talaatmagdy75@gmail.com" }]
+keywords = [
+    "environment",
+    "config",
+    "diff",
+    "yaml",
+    "dotenv",
+    "ssh",
+    "remote",
+    "cli",
+    "configuration-management",
+    "env-files",
+]
 dependencies = ["PyYAML>=6.0"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
 urls = {Homepage = "https://github.com/talaatmagdyx/envdiff_fresh", Repository = "https://github.com/talaatmagdyx/envdiff_fresh"}
 
 # Create CLI shims
