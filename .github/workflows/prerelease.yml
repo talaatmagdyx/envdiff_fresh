@@ -41,8 +41,17 @@ jobs:
           draft: false
           prerelease: true
 
+      - name: Check TestPyPI token
+        id: check-token
+        run: |
+          if [ -n "${{ secrets.TEST_PYPI_API_TOKEN }}" ]; then
+            echo "token_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "token_exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish to TestPyPI
-        if: ${{ secrets.TEST_PYPI_API_TOKEN != '' }}
+        if: steps.check-token.outputs.token_exists == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
