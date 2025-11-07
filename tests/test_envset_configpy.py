@@ -9,13 +9,13 @@ def test_configpy_append_constant():
     assert "CONFIG['API_KEY'] = 'abc'" in out
 
 
-def test_configpy_append_dict_into_CONFIG():
+def test_configpy_append_dict_into_config():
     base = "CONFIG = {}\n"
     out = envset.set_configpy_assign_block(base, "database.host", "db.local")
     assert "CONFIG['database']['host'] = " in out
 
 
-def test_configpy_append_dict_create_CONFIG_when_missing():
+def test_configpy_append_dict_create_config_when_missing():
     base = "# no CONFIG here\n"
     out = envset.set_configpy_assign_block(base, "service.timeout", 5)
     assert "CONFIG = {}" in out

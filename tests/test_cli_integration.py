@@ -6,9 +6,7 @@ from pathlib import Path
 
 def run_py(script, *args, cwd=None):
     cmd = [sys.executable, script, *args]
-    return subprocess.run(
-        cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False
-    )
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
 
 
 def test_envdiff_cli_json_and_check(tmp_path: Path):
