@@ -1,11 +1,30 @@
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 
 def run_py(script, *args, cwd=None):
-    cmd = [sys.executable, script, *args]
+    # Use installed entry points if available, otherwise fall back to script files
+    if script == "envdiff.py":
+        # Try entry point first (works when package is installed in CI)
+        entry_point = shutil.which("envdiff")
+        if entry_point:
+            cmd = [entry_point, *args]
+        else:
+            # Fall back to running script file directly (for local development)
+            script_path = Path(__file__).parent.parent / "envdiff.py"
+            cmd = [sys.executable, str(script_path), *args]
+    elif script == "envset.py":
+        entry_point = shutil.which("envset")
+        if entry_point:
+            cmd = [entry_point, *args]
+        else:
+            script_path = Path(__file__).parent.parent / "envset.py"
+            cmd = [sys.executable, str(script_path), *args]
+    else:
+        cmd = [sys.executable, script, *args]
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
 
 

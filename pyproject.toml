@@ -27,8 +27,18 @@ py-modules = ["envdiff", "envset"]
 dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.6.0"]
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=envdiff --cov=envset --cov-report=term-missing --cov-fail-under=100"
+addopts = "-q --cov=envdiff --cov=envset --cov-report=term-missing --cov-fail-under=100 --ignore-glob=**/__pycache__"
 python_files = "test_*.py"
+# Exclude __main__ blocks from coverage (they're only executed when running scripts directly)
+[tool.coverage.run]
+omit = ["*/__pycache__/*", "*/tests/*"]
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
 
 [tool.ruff]
 # Ruff configuration for code quality
