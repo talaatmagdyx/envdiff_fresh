@@ -1,0 +1,682 @@
+Metadata-Version: 2.4
+Name: envdiff-tool
+Version: 0.1.0
+Summary: Diff & patch environment configs across local/remote (.env, YAML, config.py) plus single-key editor.
+Author: Your Team
+License: MIT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: PyYAML>=6.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4; extra == "dev"
+Requires-Dist: pytest-cov>=4.1; extra == "dev"
+Requires-Dist: ruff>=0.6.0; extra == "dev"
+Dynamic: license-file
+
+# envdiff / envset
+
+> **Powerful CLI tools for comparing and editing environment configurations across local and remote systems**
+
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](https://github.com)
+
+**envdiff** and **envset** are command-line tools that help you manage environment configurations across different file formats (`.env`, YAML, Python `config.py`) and locations (local files or remote servers via SSH).
+
+---
+
+## ✨ Features
+
+### envdiff — Compare & Patch
+- 🔍 **Compare** environment configs between source and target files
+- 📊 **Detect** missing, extra, and different keys
+- 🔧 **Generate patches** in multiple formats (export, dotenv, PowerShell)
+- ✅ **CI/CD integration** with `--check` flag (exits non-zero on differences)
+- 🎯 **Filter keys** with regex patterns (`--include` / `--exclude`)
+- 📝 **Apply changes** directly to `.env` files with automatic backups
+- 🌐 **Remote support** via SSH/SCP for both source and target
+- 📋 **JSON output** for machine-readable reports
+
+### envset — Single Key Editor
+- ✏️ **Edit one key** across multiple files simultaneously
+- 📁 **Multi-format support**: `.env`, YAML, Python `config.py`
+- 🔄 **In-place rewriting** for existing constants and dict assignments
+- 🎯 **Nested keys** support for YAML and Python dicts (dot notation)
+- 🌐 **Remote editing** via SSH/SCP
+- 💾 **Automatic backups** before modifications
+- 🔢 **JSON values** support for typed data
+
+---
+
+## 🚀 Quick Start
+
+### Installation
+
+**Option 1: pipx (Recommended for CLI tools)**
+```bash
+pipx install envdiff-tool
+```
+
+**Option 2: pip**
+```bash
+pip install envdiff-tool
+```
+
+**Option 3: From source**
+```bash
+git clone <repo-url>
+cd envdiff_fresh
+pip install -e .
+```
+
+### Quick Example
+
+```bash
+# Compare YAML config with .env file
+envdiff --source config.yml --target .env --patch-format export
+
+# Set a key across multiple files
+envset --files .env config.yml --key LOG_LEVEL --value warning
+```
+
+---
+
+## 📖 Documentation
+
+### Table of Contents
+- [envdiff: Compare & Patch](#envdiff-compare--patch)
+- [envset: Single Key Editor](#envset-single-key-editor)
+- [Remote Operations](#remote-operations)
+- [CI/CD Integration](#cicd-integration)
+- [Advanced Usage](#advanced-usage)
+- [Windows Support](#windows-support)
+- [Development](#development)
+
+---
+
+## 🔍 envdiff: Compare & Patch
+
+Compare environment configurations and generate patches to synchronize them.
+
+### Basic Usage
+
+```bash
+# Compare source YAML with target .env
+envdiff --source examples/source.yml --target examples/target.env
+
+# Output:
+# Missing on target (1):
+#   - APP_NAME
+# 
+# Extra on target (1):
+#   - OLD_KEY
+# 
+# Different values (1):
+#   - DATABASE_URL
+```
+
+### Generate Patches
+
+```bash
+# Generate export format patch
+envdiff --source config.yml --target .env --patch-format export
+
+# Output:
+# # Patch (export) — apply on target to add/update keys
+# export APP_NAME='myapp'
+# export DATABASE_URL='postgres://localhost/db'
+```
+
+**Available patch formats:**
+- `export` — Shell export statements (Bash/Zsh)
+- `dotenv` — Standard `.env` format
+- `powershell` — PowerShell environment variables
+
+### Apply Changes Directly
+
+```bash
+# Apply changes to target .env (creates backup automatically)
+envdiff --source config.yml --target .env --apply
+
+# Dry-run to preview changes
+envdiff --source config.yml --target .env --apply --apply-dry-run
+```
+
+### Filter Keys with Regex
+
+```bash
+# Only check keys starting with APP_
+envdiff --source config.yml --target .env --include '^APP_'
+
+# Exclude secret keys
+envdiff --source config.yml --target .env --exclude 'SECRET|PASSWORD|KEY'
+
+# Combine filters
+envdiff --source config.yml --target .env \
+  --include '^APP_' \
+  --exclude 'SECRET'
+```
+
+### Prefix Filtering
+
+```bash
+# Only compare keys with specific prefix
+envdiff --source config.yml --target .env --only-prefix DATABASE
+
+# Ignore keys with specific prefix
+envdiff --source config.yml --target .env --ignore-prefix DEBUG
+```
+
+### JSON Output
+
+Get machine-readable output for automation:
+
+```bash
+envdiff --source config.yml --target .env --format json
+
+# Output:
+# {
+#   "source": "config.yml",
+#   "target": ".env",
+#   "summary": {
+#     "missing": 2,
+#     "extra": 1,
+#     "different": 1,
+#     "same": 5
+#   },
+#   "keys": {
+#     "missing": ["APP_NAME", "API_KEY"],
+#     "extra": ["OLD_KEY"],
+#     "different": ["DATABASE_URL"]
+#   },
+#   "patch": {
+#     "format": "export",
+#     "lines": ["export APP_NAME='myapp'", ...]
+#   }
+# }
+```
+
+### Case Sensitivity
+
+```bash
+# Case-insensitive comparison (default)
+envdiff --source config.yml --target .env --case-sensitive false
+
+# Case-sensitive comparison
+envdiff --source config.yml --target .env --case-sensitive true
+```
+
+---
+
+## ✏️ envset: Single Key Editor
+
+Edit a single key across multiple files in different formats.
+
+### Basic Usage
+
+```bash
+# Set LOG_LEVEL in multiple files
+envset --files .env config.yml --key LOG_LEVEL --value warning
+```
+
+### Supported File Types
+
+#### `.env` Files
+```bash
+envset --files .env --key DATABASE_URL --value postgres://localhost/db
+```
+
+#### YAML Files (Nested Keys)
+```bash
+# Set nested key using dot notation
+envset --files config.yml --key app.database.host --value db.example.com
+
+# Set with JSON value (for typed data)
+envset --files config.yml --key app.timeout --value '30' --json
+```
+
+#### Python `config.py` Files
+
+**UPPERCASE Constants:**
+```bash
+# Add or update a constant
+envset --files config.py --key RABBITMQ_USER --value admin
+
+# In-place rewrite existing constant
+envset --files config.py --key RABBITMQ_USER --value root --rewrite
+```
+
+**CONFIG/ENV Dictionaries:**
+```bash
+# Set nested dict key
+envset --files config.py --key database.host --value db.new
+
+# In-place rewrite existing dict assignment
+envset --files config.py --key database.host --value db.new --rewrite
+```
+
+### Multiple Files
+
+```bash
+# Update the same key across multiple files
+envset --files .env config.yml config.py \
+  --key API_KEY \
+  --value "new-secret-key"
+```
+
+### JSON Values
+
+```bash
+# Set complex JSON values
+envset --files config.yml \
+  --key app.features \
+  --value '{"feature1": true, "feature2": false}' \
+  --json
+```
+
+### Dry Run
+
+```bash
+# Preview changes without modifying files
+envset --files config.py --key RABBITMQ_USER --value admin --dry-run
+```
+
+---
+
+## 🌐 Remote Operations
+
+Both tools support remote files via SSH/SCP.
+
+### SSH Configuration
+
+```bash
+# Basic remote path
+envdiff --source user@server:/path/to/config.yml --target .env
+
+# With SSH port
+envdiff --source user@server:/path/config.yml \
+  --target .env \
+  --source-ssh-port 2222
+
+# With SSH identity file
+envdiff --source user@server:/path/config.yml \
+  --target .env \
+  --source-ssh-identity ~/.ssh/id_rsa
+
+# With SSH options
+envdiff --source user@server:/path/config.yml \
+  --target .env \
+  --source-ssh-extra "StrictHostKeyChecking=no,UserKnownHostsFile=/dev/null"
+```
+
+### Remote Examples
+
+```bash
+# Compare local YAML with remote .env
+envdiff --source config.yml --target user@prod:/srv/app/.env
+
+# Set key on remote config.py
+envset --files user@prod:/opt/app/config.py \
+  --key RABBITMQ_USER \
+  --value root \
+  --rewrite
+
+# Apply changes to remote .env
+envdiff --source config.yml \
+  --target user@prod:/srv/app/.env \
+  --apply
+```
+
+---
+
+## 🔄 CI/CD Integration
+
+Use `--check` flag to fail CI builds when configurations don't match.
+
+### Basic CI Check
+
+```bash
+# Exit with code 5 if differences exist
+envdiff --source config.yml --target .env --check
+
+# In CI script
+if ! envdiff --source config.yml --target .env --check; then
+  echo "Configuration mismatch detected!"
+  exit 1
+fi
+```
+
+### With Filters
+
+```bash
+# Only check specific keys
+envdiff --source config.yml --target .env \
+  --include '^APP_' \
+  --check
+```
+
+### JSON Output for CI
+
+```bash
+# Get structured output for CI scripts
+envdiff --source config.yml --target .env \
+  --format json \
+  --check \
+  --patch-format export
+
+# Exit code 5 if differences remain after filtering
+```
+
+### GitHub Actions Example
+
+```yaml
+- name: Check environment configuration
+  run: |
+    envdiff \
+      --source config/production.yml \
+      --target .env \
+      --include '^APP_' \
+      --exclude 'SECRET' \
+      --check \
+      --format json
+```
+
+---
+
+## 🎯 Advanced Usage
+
+### Custom Source/Target Types
+
+```bash
+# Explicitly specify file types
+envdiff --source config.yml \
+  --target config.py \
+  --source-type yaml \
+  --target-type py
+```
+
+### Show Same Values
+
+```bash
+# Include keys with matching values in output
+envdiff --source config.yml --target .env --show-same
+```
+
+### Keys-Only JSON Output
+
+```bash
+# Get only the keys JSON (without full report)
+envdiff --source config.yml --target .env --keys-json
+
+# Output:
+# {
+#   "missing": ["APP_NAME"],
+#   "extra": ["OLD_KEY"],
+#   "different": ["DATABASE_URL"],
+#   "same": ["LOG_LEVEL"]
+# }
+```
+
+### JSON-Only Mode
+
+```bash
+# Output only JSON (no human-readable text)
+envdiff --source config.yml --target .env --json-only
+```
+
+### Backup Control
+
+```bash
+# Disable automatic backups
+envdiff --source config.yml --target .env --apply --apply-backup none
+
+# Backups are enabled by default (format: .env.bak-20240101120000)
+```
+
+---
+
+## 🪟 Windows Support
+
+### Installation
+
+```powershell
+# Install with pipx
+pipx install envdiff-tool
+
+# If pipx is not on PATH, add it:
+$Env:Path += ';' + (python -m site --user-base) + '\Scripts'
+```
+
+### PowerShell Patch Format
+
+```powershell
+# Generate PowerShell patch
+envdiff --source .\config.yml --target .\.env --patch-format powershell > patch.ps1
+
+# Review and apply
+Get-Content patch.ps1
+. .\patch.ps1
+```
+
+### Remote Operations from Windows
+
+Windows 10+ includes OpenSSH, so remote operations work out of the box:
+
+```powershell
+# Compare with remote file
+envdiff --source .\config.yml --target user@server:/srv/app/.env
+
+# Edit remote config
+envset --files user@server:/opt/app/config.py --key RABBITMQ_USER --value root
+```
+
+---
+
+## 📁 File Format Examples
+
+### `.env` Format
+```bash
+APP_NAME=myapp
+DATABASE_URL=postgres://localhost/db
+LOG_LEVEL=info
+```
+
+### YAML Format
+```yaml
+app:
+  name: myapp
+  database:
+    url: postgres://localhost/db
+logging:
+  level: info
+```
+
+### Python `config.py` Format
+```python
+# Constants
+RABBITMQ_USER = 'admin'
+API_KEY = 'secret-key'
+
+# Or dictionaries
+CONFIG = {
+    'database': {
+        'host': 'localhost',
+        'port': 5432
+    }
+}
+```
+
+---
+
+## 🛠️ Development
+
+### Setup
+
+```bash
+# Clone repository
+git clone <repo-url>
+cd envdiff_fresh
+
+# Install in editable mode with dev dependencies
+pip install -e .[dev]
+```
+
+### Running Tests
+
+```bash
+# Run all tests with coverage
+pytest
+
+# Tests require 100% coverage to pass
+```
+
+### Linting
+
+```bash
+# Check code style
+ruff check .
+
+# Format code
+ruff format .
+
+# Check formatting without changes
+ruff format --check .
+```
+
+### Project Structure
+
+```
+envdiff_fresh/
+├── envdiff.py          # Main diff/patch tool
+├── envset.py           # Single key editor
+├── tests/              # Test suite (100% coverage)
+│   ├── test_cli_integration.py
+│   ├── test_coverage.py
+│   ├── test_envset_configpy.py
+│   └── test_parsers_and_patch.py
+├── examples/           # Example files
+│   ├── example.env
+│   ├── example.yaml
+│   ├── source.yml
+│   ├── target.env
+│   └── target_config.py
+├── pyproject.toml      # Project configuration
+├── requirements.txt    # Runtime dependencies
+└── README.md           # This file
+```
+
+---
+
+## 📝 Examples Directory
+
+The `examples/` directory contains sample files for testing:
+
+- `example.env` — Sample `.env` file
+- `example.yaml` — Sample YAML configuration
+- `source.yml` — Source file for diff examples
+- `target.env` — Target file for diff examples
+- `target_config.py` — Python config file example
+
+Try them out:
+```bash
+envdiff --source examples/source.yml --target examples/target.env
+envset --files examples/example.env examples/example.yaml --key LOG_LEVEL --value debug
+```
+
+---
+
+## 🚢 Release Process
+
+This repository includes GitHub Actions workflows for automated releases.
+
+### Standard Release
+
+1. **Bump version** in `pyproject.toml`
+2. **Commit and tag:**
+   ```bash
+   git add pyproject.toml
+   git commit -m "chore: bump version to 0.1.1"
+   git tag v0.1.1
+   git push --follow-tags
+   ```
+3. **GitHub Actions** will:
+   - Build `sdist` and `wheel` packages
+   - Create a GitHub Release
+   - Upload to PyPI (if `PYPI_API_TOKEN` secret is set)
+
+### Release Candidate (RC)
+
+1. **Bump version** to RC format (e.g., `0.2.0rc1`)
+2. **Tag with RC pattern:**
+   ```bash
+   git commit -am "chore: bump version to 0.2.0rc1"
+   git tag v0.2.0-rc1
+   git push --follow-tags
+   ```
+3. **GitHub Actions** will:
+   - Build packages
+   - Create a GitHub Pre-Release
+   - Upload to TestPyPI (if `TEST_PYPI_API_TOKEN` secret is set)
+
+### PyPI Tokens
+
+Add tokens in GitHub repository settings:
+- **Settings → Secrets and variables → Actions → New repository secret**
+- `PYPI_API_TOKEN` — For production releases
+- `TEST_PYPI_API_TOKEN` — For release candidates
+
+---
+
+## ❓ FAQ
+
+### Why do I need both tools?
+
+- **envdiff**: Compare configurations and generate patches for synchronization
+- **envset**: Quickly update a single key across multiple files
+
+### Can I use these tools with Docker?
+
+Yes! Both tools work inside Docker containers. Mount your config files as volumes and run the commands.
+
+### How do I handle secrets?
+
+Use `--exclude` to filter out secret keys from comparisons:
+```bash
+envdiff --source config.yml --target .env --exclude 'SECRET|PASSWORD|KEY'
+```
+
+### Can I compare more than two files?
+
+Currently, envdiff compares one source to one target. For multiple comparisons, run the command multiple times or use a script.
+
+### What Python versions are supported?
+
+Python 3.8 and above.
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) file for details.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please ensure:
+- All tests pass (`pytest`)
+- Code coverage remains at 100%
+- Code follows style guidelines (`ruff check`)
+
+---
+
+## 📚 Additional Resources
+
+- Run `envdiff --help` or `envset --help` for full command-line options
+- Check `examples/` directory for sample files
+- Review test files in `tests/` for usage examples
+
+---
+
+**Made with ❤️ for developers who care about configuration management**

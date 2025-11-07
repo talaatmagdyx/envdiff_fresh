@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "envdiff-tool"
+version = "0.1.0"
+description = "Diff & patch environment configs across local/remote (.env, YAML, config.py) plus single-key editor."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{ name = "Your Team" }]
+dependencies = ["PyYAML>=6.0"]
+urls = {Homepage = "https://github.com/talaatmagdyx/envdiff_fresh", Repository = "https://github.com/talaatmagdyx/envdiff_fresh"}
+
+# Create CLI shims
+[project.scripts]
+envdiff = "envdiff:main"
+envset  = "envset:main"
+
+[tool.setuptools]
+# we use top-level single-file modules (no packages)
+py-modules = ["envdiff", "envset"]
+
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.6.0"]
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=envdiff --cov=envset --cov-report=term-missing --cov-fail-under=100"
+python_files = "test_*.py"
+
+[tool.ruff]
+# Ruff configuration for code quality
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+# Enable specific rule sets
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+]
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+# Indent with spaces
+indent-style = "space"
+# Use 4 spaces per indentation level
+skip-magic-trailing-comma = false

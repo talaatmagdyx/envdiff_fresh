@@ -1,0 +1,6 @@
+app:
+  name: EnvTool
+  logging:
+    level: info
+  features:
+    debug: false
