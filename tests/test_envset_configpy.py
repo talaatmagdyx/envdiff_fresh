@@ -1,4 +1,7 @@
 import re
+from pathlib import Path
+
+import pytest
 
 import envset
 
@@ -20,6 +23,34 @@ def test_configpy_append_dict_create_config_when_missing():
     out = envset.set_configpy_assign_block(base, "service.timeout", 5)
     assert "CONFIG = {}" in out
     assert "CONFIG['service']['timeout'] = 5" in out
+
+
+def test_single_quoted_constant(tmp_path: Path):
+    """Test handling of single-quoted constants like RABBITMQ_USER='TATA'."""
+    cfg = tmp_path / "config.py"
+    cfg.write_text("RABBITMQ_USER='TATA'\n", encoding="utf-8")
+
+    from tests.test_cli_integration import run_py
+
+    # Test rewriting single-quoted constant
+    r = run_py(
+        "envset.py", "--files", str(cfg), "--key", "RABBITMQ_USER", "--value", "NEW_VALUE", "--rewrite"
+    )
+    assert r.returncode == 0
+    content = cfg.read_text(encoding="utf-8")
+    assert "RABBITMQ_USER" in content
+    assert "NEW_VALUE" in content
+    # Should use single quotes (Python's repr prefers single quotes for strings)
+    assert "'NEW_VALUE'" in content or '"NEW_VALUE"' in content
+
+    # Test adding new single-quoted constant
+    cfg2 = tmp_path / "config2.py"
+    cfg2.write_text("# Empty\n", encoding="utf-8")
+    r2 = run_py("envset.py", "--files", str(cfg2), "--key", "RABBITMQ_USER", "--value", "TATA")
+    assert r2.returncode == 0
+    content2 = cfg2.read_text(encoding="utf-8")
+    assert "RABBITMQ_USER" in content2
+    assert "TATA" in content2
 
 
 def test_rewrite_constant_inplace_when_present():
