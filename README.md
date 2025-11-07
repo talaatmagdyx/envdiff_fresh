@@ -90,26 +90,31 @@ Compare environment configurations and generate patches to synchronize them.
 envdiff --source examples/source.yml --target examples/target.env
 
 # Output:
-# Missing on target (1):
-#   - APP_NAME
+# Missing on target (2):
+#   - database.host
+#   - database.port
 # 
-# Extra on target (1):
-#   - OLD_KEY
+# Extra on target (2):
+#   - DATABASE_HOST
+#   - DATABASE_PORT
 # 
-# Different values (1):
-#   - DATABASE_URL
+# Different values (2):
+#   - APP_MODE
+#   - FEATURE_X
 ```
 
 ### Generate Patches
 
 ```bash
 # Generate export format patch
-envdiff --source config.yml --target .env --patch-format export
+envdiff --source examples/source.yml --target examples/target.env --patch-format export
 
 # Output:
 # # Patch (export) — apply on target to add/update keys
-# export APP_NAME='myapp'
-# export DATABASE_URL='postgres://localhost/db'
+# export database.host='db.prod'
+# export database.port='5432'
+# export APP_MODE='production'
+# export FEATURE_X='True'
 ```
 
 **Available patch formats:**
@@ -391,14 +396,14 @@ envdiff --source config.yml --target .env --show-same
 
 ```bash
 # Get only the keys JSON (without full report)
-envdiff --source config.yml --target .env --keys-json
+envdiff --source examples/source.yml --target examples/target.env --keys-json
 
-# Output:
+# Output (JSON followed by text summary):
 # {
-#   "missing": ["APP_NAME"],
-#   "extra": ["OLD_KEY"],
-#   "different": ["DATABASE_URL"],
-#   "same": ["LOG_LEVEL"]
+#   "missing": ["database.host", "database.port"],
+#   "extra": ["DATABASE_HOST", "DATABASE_PORT"],
+#   "different": ["APP_MODE", "FEATURE_X"],
+#   "same": null
 # }
 ```
 
