@@ -1,0 +1,3 @@
+[console_scripts]
+envdiff = envdiff:main
+envset = envset:main

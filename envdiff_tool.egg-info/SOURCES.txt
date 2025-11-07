@@ -1,0 +1,16 @@
+LICENSE
+README.md
+envdiff.py
+envset.py
+pyproject.toml
+setup.cfg
+envdiff_tool.egg-info/PKG-INFO
+envdiff_tool.egg-info/SOURCES.txt
+envdiff_tool.egg-info/dependency_links.txt
+envdiff_tool.egg-info/entry_points.txt
+envdiff_tool.egg-info/requires.txt
+envdiff_tool.egg-info/top_level.txt
+tests/test_cli_integration.py
+tests/test_coverage.py
+tests/test_envset_configpy.py
+tests/test_parsers_and_patch.py
