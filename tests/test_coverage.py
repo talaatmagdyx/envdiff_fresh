@@ -2364,7 +2364,6 @@ def test_envset_main_write_error_exception(tmp_path: Path):
     """Test envset main() with write error exception handling (lines 744-745)."""
     import sys
     from io import StringIO
-    import os
 
     # Create a read-only directory
     ro_dir = tmp_path / "readonly"
