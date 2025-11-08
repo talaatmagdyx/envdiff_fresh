@@ -32,7 +32,14 @@ def test_single_quoted_constant(tmp_path: Path):
 
     # Test rewriting single-quoted constant
     r = run_py(
-        "envset.py", "--files", str(cfg), "--key", "RABBITMQ_USER", "--value", "NEW_VALUE", "--rewrite"
+        "envset.py",
+        "--files",
+        str(cfg),
+        "--key",
+        "RABBITMQ_USER",
+        "--value",
+        "NEW_VALUE",
+        "--rewrite",
     )
     assert r.returncode == 0
     content = cfg.read_text(encoding="utf-8")

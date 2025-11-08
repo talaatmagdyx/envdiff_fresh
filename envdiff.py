@@ -229,9 +229,7 @@ def scp_to_temp(
     tmp.close()
     cmd = _scp_cmd(remote, tmp.name, port, identity, extra)
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, timeout=timeout, text=True
-        )
+        result = subprocess.run(cmd, capture_output=True, timeout=timeout, text=True)
         if result.returncode != 0:
             # Clean up temp file on failure
             try:
@@ -242,9 +240,7 @@ def scp_to_temp(
             error_msg = result.stderr.strip() or result.stdout.strip() or "(no error message)"
             cmd_str = " ".join(shlex.quote(str(arg)) for arg in cmd)
             raise RuntimeError(
-                f"SCP failed to download {remote}\n"
-                f"Error: {error_msg}\n"
-                f"Command: {cmd_str}"
+                f"SCP failed to download {remote}\nError: {error_msg}\nCommand: {cmd_str}"
             ) from subprocess.CalledProcessError(
                 result.returncode, cmd, output=result.stdout, stderr=result.stderr
             )
@@ -256,7 +252,7 @@ def scp_to_temp(
             pass
         cmd_str = " ".join(shlex.quote(str(arg)) for arg in cmd)
         raise RuntimeError(
-            f"SCP timeout ({timeout}s) while downloading {remote}\n" f"Command: {cmd_str}"
+            f"SCP timeout ({timeout}s) while downloading {remote}\nCommand: {cmd_str}"
         ) from e
     return tmp.name
 
@@ -285,9 +281,7 @@ def scp_upload(
     """
     cmd = _scp_cmd(local_path, remote, port, identity, extra)
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, timeout=timeout, text=True
-        )
+        result = subprocess.run(cmd, capture_output=True, timeout=timeout, text=True)
         if result.returncode != 0:
             # Provide helpful error message with SCP output
             error_msg = result.stderr.strip() or result.stdout.strip() or "(no error message)"
@@ -302,8 +296,7 @@ def scp_upload(
     except subprocess.TimeoutExpired as e:
         cmd_str = " ".join(shlex.quote(str(arg)) for arg in cmd)
         raise RuntimeError(
-            f"SCP timeout ({timeout}s) while uploading {local_path} to {remote}\n"
-            f"Command: {cmd_str}"
+            f"SCP timeout ({timeout}s) while uploading {local_path} to {remote}\nCommand: {cmd_str}"
         ) from e
 
 
