@@ -106,6 +106,169 @@ def test_scp_upload(mock_run):
     mock_run.assert_called_once()
 
 
+@patch("envdiff.os.unlink")
+@patch("envdiff.subprocess.run")
+@patch("envdiff.tempfile.NamedTemporaryFile")
+def test_scp_to_temp_error(mock_tempfile, mock_run, mock_unlink):
+    """Test scp_to_temp function with error handling."""
+    mock_tmp = MagicMock()
+    mock_tmp.name = "/tmp/file"
+    mock_tempfile.return_value = mock_tmp
+    # Mock subprocess.run to return error result
+    mock_result = MagicMock()
+    mock_result.returncode = 255
+    mock_result.stderr = "Connection refused"
+    mock_result.stdout = ""
+    mock_run.return_value = mock_result
+
+    with pytest.raises(RuntimeError, match="SCP failed to download"):
+        envdiff.scp_to_temp("host:/remote", None, None, None)
+    mock_run.assert_called_once()
+    mock_unlink.assert_called_once_with("/tmp/file")
+
+
+@patch("envdiff.os.unlink")
+@patch("envdiff.subprocess.run")
+@patch("envdiff.tempfile.NamedTemporaryFile")
+def test_scp_to_temp_timeout(mock_tempfile, mock_run, mock_unlink):
+    """Test scp_to_temp function with timeout handling."""
+    import subprocess
+
+    mock_tmp = MagicMock()
+    mock_tmp.name = "/tmp/file"
+    mock_tempfile.return_value = mock_tmp
+    # Mock subprocess.run to raise TimeoutExpired
+    mock_run.side_effect = subprocess.TimeoutExpired("scp", 60)
+
+    with pytest.raises(RuntimeError, match="SCP timeout"):
+        envdiff.scp_to_temp("host:/remote", None, None, None, timeout=60)
+    mock_run.assert_called_once()
+    mock_unlink.assert_called_once_with("/tmp/file")
+
+
+@patch("envdiff.os.unlink")
+@patch("envdiff.subprocess.run")
+@patch("envdiff.tempfile.NamedTemporaryFile")
+def test_scp_to_temp_error_unlink_fails(mock_tempfile, mock_run, mock_unlink):
+    """Test scp_to_temp function when unlink fails during error cleanup."""
+    mock_tmp = MagicMock()
+    mock_tmp.name = "/tmp/file"
+    mock_tempfile.return_value = mock_tmp
+    # Mock subprocess.run to return error result
+    mock_result = MagicMock()
+    mock_result.returncode = 255
+    mock_result.stderr = "Connection refused"
+    mock_result.stdout = ""
+    mock_run.return_value = mock_result
+    # Mock os.unlink to raise exception
+    mock_unlink.side_effect = OSError("Permission denied")
+
+    with pytest.raises(RuntimeError, match="SCP failed to download"):
+        envdiff.scp_to_temp("host:/remote", None, None, None)
+    mock_run.assert_called_once()
+    mock_unlink.assert_called_once_with("/tmp/file")
+
+
+@patch("envdiff.subprocess.run")
+def test_scp_upload_error(mock_run):
+    """Test scp_upload function with error handling."""
+    # Mock subprocess.run to return error result
+    mock_result = MagicMock()
+    mock_result.returncode = 255
+    mock_result.stderr = "Permission denied"
+    mock_result.stdout = ""
+    mock_run.return_value = mock_result
+
+    with pytest.raises(RuntimeError, match="SCP failed to upload"):
+        envdiff.scp_upload("/local", "host:/remote", None, None, None)
+    mock_run.assert_called_once()
+
+
+@patch("envdiff.subprocess.run")
+def test_scp_upload_timeout(mock_run):
+    """Test scp_upload function with timeout handling."""
+    import subprocess
+
+    # Mock subprocess.run to raise TimeoutExpired
+    mock_run.side_effect = subprocess.TimeoutExpired("scp", 60)
+
+    with pytest.raises(RuntimeError, match="SCP timeout"):
+        envdiff.scp_upload("/local", "host:/remote", None, None, None, timeout=60)
+    mock_run.assert_called_once()
+
+
+@patch("envdiff.subprocess.run")
+def test_scp_upload_error_no_stderr(mock_run):
+    """Test scp_upload function with error but no stderr."""
+    # Mock subprocess.run to return error result with no stderr
+    mock_result = MagicMock()
+    mock_result.returncode = 255
+    mock_result.stderr = ""
+    mock_result.stdout = "Some output"
+    mock_run.return_value = mock_result
+
+    with pytest.raises(RuntimeError, match="SCP failed to upload"):
+        envdiff.scp_upload("/local", "host:/remote", None, None, None)
+    mock_run.assert_called_once()
+
+
+@patch("envdiff.subprocess.run")
+def test_scp_upload_error_no_message(mock_run):
+    """Test scp_upload function with error but no stderr or stdout."""
+    # Mock subprocess.run to return error result with no stderr or stdout
+    mock_result = MagicMock()
+    mock_result.returncode = 255
+    mock_result.stderr = ""
+    mock_result.stdout = ""
+    mock_run.return_value = mock_result
+
+    with pytest.raises(RuntimeError, match="SCP failed to upload"):
+        envdiff.scp_upload("/local", "host:/remote", None, None, None)
+    mock_run.assert_called_once()
+
+
+@patch("envdiff.os.unlink")
+@patch("envdiff.subprocess.run")
+@patch("envdiff.tempfile.NamedTemporaryFile")
+def test_scp_to_temp_timeout_unlink_fails(mock_tempfile, mock_run, mock_unlink):
+    """Test scp_to_temp function when unlink fails during timeout cleanup."""
+    import subprocess
+
+    mock_tmp = MagicMock()
+    mock_tmp.name = "/tmp/file"
+    mock_tempfile.return_value = mock_tmp
+    # Mock subprocess.run to raise TimeoutExpired
+    mock_run.side_effect = subprocess.TimeoutExpired("scp", 60)
+    # Mock os.unlink to raise exception
+    mock_unlink.side_effect = OSError("Permission denied")
+
+    with pytest.raises(RuntimeError, match="SCP timeout"):
+        envdiff.scp_to_temp("host:/remote", None, None, None, timeout=60)
+    mock_run.assert_called_once()
+    mock_unlink.assert_called_once_with("/tmp/file")
+
+
+@patch("envdiff.os.unlink")
+@patch("envdiff.subprocess.run")
+@patch("envdiff.tempfile.NamedTemporaryFile")
+def test_scp_to_temp_error_no_message(mock_tempfile, mock_run, mock_unlink):
+    """Test scp_to_temp function with error but no stderr or stdout."""
+    mock_tmp = MagicMock()
+    mock_tmp.name = "/tmp/file"
+    mock_tempfile.return_value = mock_tmp
+    # Mock subprocess.run to return error result with no stderr or stdout
+    mock_result = MagicMock()
+    mock_result.returncode = 255
+    mock_result.stderr = ""
+    mock_result.stdout = ""
+    mock_run.return_value = mock_result
+
+    with pytest.raises(RuntimeError, match="SCP failed to download"):
+        envdiff.scp_to_temp("host:/remote", None, None, None)
+    mock_run.assert_called_once()
+    mock_unlink.assert_called_once_with("/tmp/file")
+
+
 def test_read_python_module_with_config(tmp_path: Path):
     """Test read_python_module with CONFIG dict."""
     py_file = tmp_path / "config.py"
