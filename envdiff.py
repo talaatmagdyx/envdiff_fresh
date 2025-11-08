@@ -230,7 +230,7 @@ def scp_to_temp(
     cmd = _scp_cmd(remote, tmp.name, port, identity, extra)
     try:
         result = subprocess.run(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, text=True
+            cmd, capture_output=True, timeout=timeout, text=True
         )
         if result.returncode != 0:
             # Clean up temp file on failure
@@ -286,7 +286,7 @@ def scp_upload(
     cmd = _scp_cmd(local_path, remote, port, identity, extra)
     try:
         result = subprocess.run(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, text=True
+            cmd, capture_output=True, timeout=timeout, text=True
         )
         if result.returncode != 0:
             # Provide helpful error message with SCP output
