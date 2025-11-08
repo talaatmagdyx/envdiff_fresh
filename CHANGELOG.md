@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-11-07
+
+### Fixed
+- Enhanced SCP error handling to display actual error messages instead of generic exit codes
+- Improved `scp_to_temp` and `scp_upload` functions to capture and display SCP stderr output
+- Added proper cleanup of temporary files on SCP failures
+- Better error messages now include the actual SCP error and the command that was executed
+
 ### Added
 - Comprehensive test suite with 100% code coverage
 - Ruff linting integration for code quality

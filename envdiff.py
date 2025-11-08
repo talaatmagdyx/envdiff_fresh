@@ -219,13 +219,45 @@ def scp_to_temp(
     Returns:
         Path to temporary local file
 
+    Raises:
+        RuntimeError: If SCP command fails, with enhanced error message including SCP output
+
     Note:
         Temporary file is not automatically deleted - caller must clean up
     """
     tmp = tempfile.NamedTemporaryFile(prefix="envdiff_", delete=False)
     tmp.close()
     cmd = _scp_cmd(remote, tmp.name, port, identity, extra)
-    subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, timeout=timeout)
+    try:
+        result = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, text=True
+        )
+        if result.returncode != 0:
+            # Clean up temp file on failure
+            try:
+                os.unlink(tmp.name)
+            except Exception:
+                pass
+            # Provide helpful error message with SCP output
+            error_msg = result.stderr.strip() or result.stdout.strip() or "(no error message)"
+            cmd_str = " ".join(shlex.quote(str(arg)) for arg in cmd)
+            raise RuntimeError(
+                f"SCP failed to download {remote}\n"
+                f"Error: {error_msg}\n"
+                f"Command: {cmd_str}"
+            ) from subprocess.CalledProcessError(
+                result.returncode, cmd, output=result.stdout, stderr=result.stderr
+            )
+    except subprocess.TimeoutExpired as e:
+        # Clean up temp file on timeout
+        try:
+            os.unlink(tmp.name)
+        except Exception:
+            pass
+        cmd_str = " ".join(shlex.quote(str(arg)) for arg in cmd)
+        raise RuntimeError(
+            f"SCP timeout ({timeout}s) while downloading {remote}\n" f"Command: {cmd_str}"
+        ) from e
     return tmp.name
 
 
@@ -249,10 +281,30 @@ def scp_upload(
         timeout: Command timeout in seconds (default: 60)
 
     Raises:
-        subprocess.CalledProcessError: If upload fails
+        RuntimeError: If upload fails, with enhanced error message including SCP output
     """
     cmd = _scp_cmd(local_path, remote, port, identity, extra)
-    subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, timeout=timeout)
+    try:
+        result = subprocess.run(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, text=True
+        )
+        if result.returncode != 0:
+            # Provide helpful error message with SCP output
+            error_msg = result.stderr.strip() or result.stdout.strip() or "(no error message)"
+            cmd_str = " ".join(shlex.quote(str(arg)) for arg in cmd)
+            raise RuntimeError(
+                f"SCP failed to upload {local_path} to {remote}\n"
+                f"Error: {error_msg}\n"
+                f"Command: {cmd_str}"
+            ) from subprocess.CalledProcessError(
+                result.returncode, cmd, output=result.stdout, stderr=result.stderr
+            )
+    except subprocess.TimeoutExpired as e:
+        cmd_str = " ".join(shlex.quote(str(arg)) for arg in cmd)
+        raise RuntimeError(
+            f"SCP timeout ({timeout}s) while uploading {local_path} to {remote}\n"
+            f"Command: {cmd_str}"
+        ) from e
 
 
 # --- Parsers ---

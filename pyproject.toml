@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "envdiff-tool"
-version = "0.1.0"
+version = "0.1.1"
 description = "Diff & patch environment configs across local/remote (.env, YAML, config.py) plus single-key editor."
 readme = "README.md"
 requires-python = ">=3.8"
