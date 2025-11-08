@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2025-11-07
+
+### Fixed
+- Fixed linting issues (UP022: use `capture_output` instead of `stdout/stderr=PIPE`)
+- Removed unused pytest import from test files
+- Updated tests to mock `subprocess.run` instead of deprecated `subprocess.check_call`
+
+### Added
+- Comprehensive test coverage for SCP error handling paths
+- Tests for timeout scenarios in `scp_to_temp` and `scp_upload`
+- Tests for cleanup failure handling
+- Tests for error cases with no error messages
+- Achieved 100% code coverage across all modules
+
 ## [0.1.1] - 2025-11-07
 
 ### Fixed
