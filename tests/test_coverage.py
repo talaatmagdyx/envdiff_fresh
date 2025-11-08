@@ -77,24 +77,33 @@ def test_ssh_cat(mock_ssh_run):
     mock_ssh_run.assert_called_once()
 
 
-@patch("envdiff.subprocess.check_call")
+@patch("envdiff.subprocess.run")
 @patch("envdiff.tempfile.NamedTemporaryFile")
-def test_scp_to_temp(mock_tempfile, mock_check_call):
+def test_scp_to_temp(mock_tempfile, mock_run):
     """Test scp_to_temp function."""
     mock_tmp = MagicMock()
     mock_tmp.name = "/tmp/file"
     mock_tempfile.return_value = mock_tmp
+    # Mock subprocess.run to return successful result
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_run.return_value = mock_result
 
     result = envdiff.scp_to_temp("host:/remote", None, None, None)
     assert result == "/tmp/file"
-    mock_check_call.assert_called_once()
+    mock_run.assert_called_once()
 
 
-@patch("envdiff.subprocess.check_call")
-def test_scp_upload(mock_check_call):
+@patch("envdiff.subprocess.run")
+def test_scp_upload(mock_run):
     """Test scp_upload function."""
+    # Mock subprocess.run to return successful result
+    mock_result = MagicMock()
+    mock_result.returncode = 0
+    mock_run.return_value = mock_result
+
     envdiff.scp_upload("/local", "host:/remote", None, None, None)
-    mock_check_call.assert_called_once()
+    mock_run.assert_called_once()
 
 
 def test_read_python_module_with_config(tmp_path: Path):
